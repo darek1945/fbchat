@@ -138,6 +138,16 @@ class State(object):
 
         r = session.post("https://m.facebook.com/login.php?login_attempt=1", data=data)
 
+        # fix
+        if "cookie" in r.url:
+            beg = r.text.find("action=") + 8
+            end = r.text.find("\"", beg)
+            urlCookies = "https://m.facebook.com" + r.text[beg:end]
+            payload = {i["name"]: i["value"] for i in find_input_fields(r.text).find_all('input')}
+            r = session.post(urlCookies, data=payload)
+
+
+
         # Usually, 'Checkpoint' will refer to 2FA
         if "checkpoint" in r.url and ('id="approvals_code"' in r.text.lower()):
             code = on_2fa_callback()
@@ -187,7 +197,7 @@ class State(object):
             # Fall back to searching with a regex
             fb_dtsg = FB_DTSG_REGEX.search(r.text).group(1)
 
-        revision = int(r.text.split('"client_revision":', 1)[1].split(",", 1)[0])
+        revision = 1
 
         logout_h_element = soup.find("input", {"name": "h"})
         logout_h = logout_h_element["value"] if logout_h_element else None
